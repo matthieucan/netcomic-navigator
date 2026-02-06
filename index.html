@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcomic Browser</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Webcomic Browser</h1>
+            <p class="subtitle">Browse webcomics from <a href="https://github.com/kagisearch/smallweb" target="_blank">Kagi's SmallWeb</a></p>
+        </header>
+
+        <main>
+            <div class="sidebar">
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search comics...">
+                </div>
+                <div class="comic-list-container">
+                    <div id="comic-list" class="comic-list">
+                        <div class="loading">Loading comics...</div>
+                    </div>
+                </div>
+                <div class="comic-count" id="comic-count"></div>
+            </div>
+
+            <div class="content">
+                <div id="welcome-message" class="welcome-message">
+                    <h2>Welcome!</h2>
+                    <p>Select a comic from the list on the left to view its latest entries.</p>
+                </div>
+
+                <div id="comic-content" class="comic-content" style="display: none;">
+                    <div class="comic-header">
+                        <h2 id="comic-title"></h2>
+                        <div class="header-actions">
+                            <button id="copy-feed-url" class="copy-btn" title="Copy feed URL">Copy Feed URL</button>
+                            <a id="comic-link" href="#" target="_blank" class="visit-link">Visit Site</a>
+                        </div>
+                    </div>
+                    <div id="comic-description" class="comic-description"></div>
+                    <div id="feed-entries" class="feed-entries">
+                        <div class="loading">Loading feed...</div>
+                    </div>
+                </div>
+
+                <div id="error-message" class="error-message" style="display: none;">
+                    <h2>Error</h2>
+                    <p id="error-text"></p>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Data source: <a href="https://github.com/kagisearch/smallweb/blob/main/smallcomic.txt" target="_blank">smallcomic.txt</a></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
