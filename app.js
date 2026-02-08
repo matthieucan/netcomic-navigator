@@ -442,8 +442,8 @@ function sanitizeHtml(html, baseUrl) {
     const temp = document.createElement('div');
     temp.innerHTML = html;
 
-    // Remove script tags and event handlers
-    temp.querySelectorAll('script, style').forEach(el => el.remove());
+    // Remove script, style, link, and other resource-loading tags
+    temp.querySelectorAll('script, style, link, object, embed, iframe, frame, frameset, meta, base').forEach(el => el.remove());
 
     // Process all elements
     temp.querySelectorAll('*').forEach(el => {
