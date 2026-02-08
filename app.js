@@ -32,6 +32,43 @@ let selectedComic = null;
 const feedCache = new Map();
 const PREFETCH_COUNT = 3; // Number of comics to prefetch ahead
 
+// Generate a URL-safe slug from a comic
+function getComicSlug(comic) {
+    // Use the comic name, lowercased and with spaces/special chars replaced
+    return comic.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+// Find a comic by its slug
+function findComicBySlug(slug) {
+    if (!slug) return null;
+    return comics.find(comic => getComicSlug(comic) === slug);
+}
+
+// Update the URL hash when a comic is selected
+function updateUrlHash(comic) {
+    if (comic) {
+        const slug = getComicSlug(comic);
+        history.pushState(null, '', `#${slug}`);
+    } else {
+        history.pushState(null, '', window.location.pathname);
+    }
+}
+
+// Load comic from URL hash (if present)
+function loadFromHash() {
+    const hash = window.location.hash.slice(1); // Remove the #
+    if (!hash) return;
+
+    const comic = findComicBySlug(hash);
+    if (comic) {
+        selectComic(comic, false); // false = don't update hash again
+    }
+    // If no match found, silently ignore (security: don't display unknown hash)
+}
+
 // Extract a readable name from a feed URL
 function extractComicName(url) {
     try {
@@ -133,6 +170,9 @@ async function loadComicList() {
         filteredComics = [...comics];
         renderComicList();
         updateComicCount();
+
+        // Check if there's a comic specified in the URL hash
+        loadFromHash();
     } catch (error) {
         comicListEl.innerHTML = `<div class="error-message">Failed to load comics: ${error.message}</div>`;
     }
@@ -192,9 +232,14 @@ function filterComics(query) {
 }
 
 // Select and load a comic
-async function selectComic(comic) {
+async function selectComic(comic, updateHash = true) {
     selectedComic = comic;
     renderComicList();
+
+    // Update URL hash (unless we're loading from hash)
+    if (updateHash) {
+        updateUrlHash(comic);
+    }
 
     // Show content area, hide others
     welcomeMessageEl.style.display = 'none';
@@ -617,6 +662,11 @@ function init() {
 
     // Set up copy feed URL button
     copyFeedUrlBtn.addEventListener('click', copyFeedUrl);
+
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', () => {
+        loadFromHash();
+    });
 }
 
 // Start the app
