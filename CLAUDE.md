@@ -54,13 +54,23 @@ This is a plain text file with one RSS/Atom feed URL per line.
 ## Key Functions in app.js
 
 - `loadComicList()` - Fetches and parses the comic list on startup
-- `selectComic(comic)` - Loads a comic's RSS feed and displays entries
+- `selectComic(comic)` - Loads a comic's RSS feed and displays entries (checks cache first)
+- `displayFeedData(feedData)` - Renders feed data to the UI
+- `prefetchNearbyComics(currentComic)` - Queues prefetch of adjacent comics in the list
+- `scheduleIdlePrefetch(comic)` - Fetches a comic's feed during browser idle time
 - `parseFeed(xmlText, feedUrl)` - Detects RSS vs Atom and parses accordingly
 - `parseRSSFeed(channel, baseUrl)` / `parseAtomFeed(feed, baseUrl)` - Format-specific parsing
 - `extractMediaImage(item)` - Pulls images from media/enclosure tags
 - `sanitizeHtml(html, baseUrl)` - Cleans HTML content, fixes relative URLs
 - `filterComics(query)` - Search functionality
 - `copyFeedUrl()` - Clipboard functionality
+
+## Caching & Prefetching
+
+- `feedCache` (Map) - Stores parsed feed data by URL
+- When a comic is selected, the next 3 comics and previous 1 comic are prefetched during idle time
+- Uses `requestIdleCallback` with fallback to `setTimeout`
+- Cache is session-only (cleared on page refresh)
 
 ## UI Structure
 
@@ -116,6 +126,7 @@ python3 -m http.server 8080
 
 - Sidebar scroll is tied to page scroll (needs CSS fix with `min-height: 0` on flex children)
 - Some feeds may fail if all CORS proxies are down
-- No offline support or caching
+- No offline support (feed cache is session-only)
 - No favorites/bookmarking feature
 - Could add keyboard navigation
+- Could cache comic list in localStorage with TTL

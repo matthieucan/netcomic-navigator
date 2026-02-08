@@ -28,6 +28,10 @@ let comics = [];
 let filteredComics = [];
 let selectedComic = null;
 
+// Feed cache: stores parsed feed data by URL
+const feedCache = new Map();
+const PREFETCH_COUNT = 3; // Number of comics to prefetch ahead
+
 // Extract a readable name from a feed URL
 function extractComicName(url) {
     try {
@@ -202,6 +206,14 @@ async function selectComic(comic) {
     comicLinkEl.href = comic.siteUrl;
     comicDescriptionEl.textContent = '';
 
+    // Check cache first
+    const cached = feedCache.get(comic.url);
+    if (cached) {
+        displayFeedData(cached);
+        prefetchNearbyComics(comic);
+        return;
+    }
+
     // Show loading state
     feedEntriesEl.innerHTML = '<div class="loading">Loading feed</div>';
 
@@ -209,15 +221,13 @@ async function selectComic(comic) {
         const feedContent = await fetchWithCorsProxy(comic.url);
         const feedData = parseFeed(feedContent, comic.url);
 
-        if (feedData.description) {
-            comicDescriptionEl.textContent = feedData.description;
-        }
+        // Cache the result
+        feedCache.set(comic.url, feedData);
 
-        if (feedData.link) {
-            comicLinkEl.href = feedData.link;
-        }
+        displayFeedData(feedData);
 
-        renderFeedEntries(feedData.entries, feedData.baseUrl);
+        // Prefetch nearby comics during idle time
+        prefetchNearbyComics(comic);
     } catch (error) {
         feedEntriesEl.innerHTML = `
             <div class="error-message">
@@ -227,6 +237,73 @@ async function selectComic(comic) {
                 </p>
             </div>
         `;
+    }
+}
+
+// Display feed data (used by both cache hit and fresh fetch)
+function displayFeedData(feedData) {
+    if (feedData.description) {
+        comicDescriptionEl.textContent = feedData.description;
+    }
+
+    if (feedData.link) {
+        comicLinkEl.href = feedData.link;
+    }
+
+    renderFeedEntries(feedData.entries, feedData.baseUrl);
+}
+
+// Prefetch nearby comics in the list during idle time
+function prefetchNearbyComics(currentComic) {
+    const currentIndex = filteredComics.indexOf(currentComic);
+    if (currentIndex === -1) return;
+
+    // Get the next few comics that aren't cached yet
+    const comicsToFetch = [];
+    for (let i = 1; i <= PREFETCH_COUNT; i++) {
+        const nextIndex = currentIndex + i;
+        if (nextIndex < filteredComics.length) {
+            const comic = filteredComics[nextIndex];
+            if (!feedCache.has(comic.url)) {
+                comicsToFetch.push(comic);
+            }
+        }
+    }
+
+    // Also prefetch previous comic if not cached
+    if (currentIndex > 0) {
+        const prevComic = filteredComics[currentIndex - 1];
+        if (!feedCache.has(prevComic.url)) {
+            comicsToFetch.push(prevComic);
+        }
+    }
+
+    // Prefetch each comic during idle time
+    comicsToFetch.forEach(comic => {
+        scheduleIdlePrefetch(comic);
+    });
+}
+
+// Schedule a prefetch to run during browser idle time
+function scheduleIdlePrefetch(comic) {
+    const prefetch = async () => {
+        // Skip if already cached or if user has selected a different comic
+        if (feedCache.has(comic.url)) return;
+
+        try {
+            const feedContent = await fetchWithCorsProxy(comic.url);
+            const feedData = parseFeed(feedContent, comic.url);
+            feedCache.set(comic.url, feedData);
+        } catch (e) {
+            // Silently ignore prefetch errors
+        }
+    };
+
+    // Use requestIdleCallback if available, otherwise use setTimeout
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => prefetch(), { timeout: 5000 });
+    } else {
+        setTimeout(prefetch, 100);
     }
 }
 
